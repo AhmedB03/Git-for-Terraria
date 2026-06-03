@@ -1,15 +1,20 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Git.Common.UI;
 using Terraria.ModLoader;
 
 namespace Git
 {
-	// Please read https://github.com/tModLoader/tModLoader/wiki/Basic-tModLoader-Modding-Guide#mod-skeleton-contents for more information about the various files in a mod.
-	public class Git : Mod
-	{
+    public class Git : Mod
+    {
+        public static ModKeybind ToggleUIKey { get; private set; }
 
-	}
+        public override void Load()
+        {
+            ToggleUIKey = KeybindLoader.RegisterKeybind(this, "Toggle Schematic UI", "G");
+        }
+
+        public override void Unload()
+        {
+            ToggleUIKey = null;
+        }
+    }
 }
