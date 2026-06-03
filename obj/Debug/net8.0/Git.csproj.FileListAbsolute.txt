@@ -1,0 +1,13 @@
+C:\Users\Jeffb\OneDrive\Documents\My Games\Terraria\tModLoader\ModSources\Git\bin\Debug\net8.0\Git.deps.json
+C:\Users\Jeffb\OneDrive\Documents\My Games\Terraria\tModLoader\ModSources\Git\bin\Debug\net8.0\Git.dll
+C:\Users\Jeffb\OneDrive\Documents\My Games\Terraria\tModLoader\ModSources\Git\bin\Debug\net8.0\Git.pdb
+C:\Users\Jeffb\OneDrive\Documents\My Games\Terraria\tModLoader\ModSources\Git\obj\Debug\net8.0\Git.csproj.AssemblyReference.cache
+C:\Users\Jeffb\OneDrive\Documents\My Games\Terraria\tModLoader\ModSources\Git\obj\Debug\net8.0\Git.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Jeffb\OneDrive\Documents\My Games\Terraria\tModLoader\ModSources\Git\obj\Debug\net8.0\Git.AssemblyInfoInputs.cache
+C:\Users\Jeffb\OneDrive\Documents\My Games\Terraria\tModLoader\ModSources\Git\obj\Debug\net8.0\Git.AssemblyInfo.cs
+C:\Users\Jeffb\OneDrive\Documents\My Games\Terraria\tModLoader\ModSources\Git\obj\Debug\net8.0\Git.csproj.CoreCompileInputs.cache
+C:\Users\Jeffb\OneDrive\Documents\My Games\Terraria\tModLoader\ModSources\Git\obj\Debug\net8.0\Git.sourcelink.json
+C:\Users\Jeffb\OneDrive\Documents\My Games\Terraria\tModLoader\ModSources\Git\obj\Debug\net8.0\Git.dll
+C:\Users\Jeffb\OneDrive\Documents\My Games\Terraria\tModLoader\ModSources\Git\obj\Debug\net8.0\refint\Git.dll
+C:\Users\Jeffb\OneDrive\Documents\My Games\Terraria\tModLoader\ModSources\Git\obj\Debug\net8.0\Git.pdb
+C:\Users\Jeffb\OneDrive\Documents\My Games\Terraria\tModLoader\ModSources\Git\obj\Debug\net8.0\ref\Git.dll

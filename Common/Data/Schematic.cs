@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.ModLoader;
@@ -15,25 +16,27 @@ namespace Git.Common.Data
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
         public int Width { get; set; }
         public int Height { get; set; }
-        public TileData[,] Tiles { get; set; }
 
-        // Serialization helpers — 2D arrays don't serialize natively
-        public TileData[] TilesFlat
+        // Stored as flat array for JSON compatibility; accessed via Tiles[x,y] in code
+        public TileData[] TilesFlat { get; set; }
+
+        [JsonIgnore]
+        public TileData[,] Tiles
         {
             get
             {
-                var arr = new TileData[Width * Height];
+                var arr = new TileData[Width, Height];
                 for (int y = 0; y < Height; y++)
                     for (int x = 0; x < Width; x++)
-                        arr[y * Width + x] = Tiles[x, y];
+                        arr[x, y] = TilesFlat[y * Width + x];
                 return arr;
             }
             set
             {
-                Tiles = new TileData[Width, Height];
+                TilesFlat = new TileData[Width * Height];
                 for (int y = 0; y < Height; y++)
                     for (int x = 0; x < Width; x++)
-                        Tiles[x, y] = value[y * Width + x];
+                        TilesFlat[y * Width + x] = value[x, y];
             }
         }
     }
@@ -80,26 +83,25 @@ namespace Git.Common.Data
 
         public static SchematicCommit CaptureRegion(Point topLeft, int width, int height, string message)
         {
-            var commit = new SchematicCommit
+            var flat = new TileData[width * height];
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                    flat[y * width + x] = TileData.Capture(topLeft.X + x, topLeft.Y + y);
+
+            return new SchematicCommit
             {
                 Message = message,
                 Width = width,
                 Height = height,
-                Tiles = new TileData[width, height]
+                TilesFlat = flat
             };
-
-            for (int x = 0; x < width; x++)
-                for (int y = 0; y < height; y++)
-                    commit.Tiles[x, y] = TileData.Capture(topLeft.X + x, topLeft.Y + y);
-
-            return commit;
         }
 
         public static void PasteCommit(SchematicCommit commit, Point topLeft)
         {
-            for (int x = 0; x < commit.Width; x++)
-                for (int y = 0; y < commit.Height; y++)
-                    commit.Tiles[x, y].Place(topLeft.X + x, topLeft.Y + y);
+            for (int y = 0; y < commit.Height; y++)
+                for (int x = 0; x < commit.Width; x++)
+                    commit.TilesFlat[y * commit.Width + x].Place(topLeft.X + x, topLeft.Y + y);
 
             // Refresh the pasted region so tiles render correctly
             for (int x = topLeft.X - 1; x <= topLeft.X + commit.Width; x++)

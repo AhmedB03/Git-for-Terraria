@@ -1,1 +1,24 @@
-This description will show up on the steam page, check out https://steamcommunity.com/comment/Guide/formattinghelp.
+Git for Terraria — a schematic/blueprint system with version history.
+
+Select any region of your world, save it as a named schematic, and paste it anywhere else. Perfect for copying farms, wire contraptions, and intricate builds.
+
+[h1]Features[/h1]
+[list]
+[*] Selection Wand: left-click two corners to select a region, right-click to clear
+[*] Paste Wand: left-click to paste the selected schematic at any location
+[*] Full commit history: save multiple versions of a schematic and restore any of them
+[*] Captures tiles, walls, wires (all 4 colors), actuators, liquids, and slopes
+[*] Schematics saved to disk — persist across worlds and sessions
+[*] Press G to open the Schematic UI
+[/list]
+
+[h1]How to get the items[/h1]
+Craft both wands at a Workbench using 10 Wood each.
+
+[h1]Known limitations[/h1]
+[list]
+[*] Chest inventories are not saved (tile structure is, contents are not)
+[*] Multi-tile furniture that straddles the selection edge may not paste correctly
+[/list]
+
+[i]Version 0.1 — early release. Feedback and bug reports welcome![/i]
