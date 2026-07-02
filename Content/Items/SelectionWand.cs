@@ -56,7 +56,8 @@ namespace Git.Content.Items
         public override void AddRecipes()
         {
             CreateRecipe()
-                .AddIngredient(ItemID.Wood, 10)
+                .AddIngredient(ItemID.Wood, 2)
+                .AddRecipeGroup(RecipeGroupID.IronBar, 1)
                 .AddTile(TileID.WorkBenches)
                 .Register();
         }

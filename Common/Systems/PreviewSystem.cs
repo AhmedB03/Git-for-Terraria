@@ -25,13 +25,14 @@ namespace Git.Common.Systems
             if (player.HeldItem == null || !(player.HeldItem.ModItem is PasteWand))
                 return;
 
-            SchematicCommit commit = GetPreviewCommit();
+            SchematicCommit commit = SchematicManager.GetActiveCommit();
             if (commit == null || commit.TilesFlat == null)
                 return;
 
             Point anchor = Main.MouseWorld.ToTileCoordinates();
             float zoom   = Main.GameViewMatrix.Zoom.X;
             int tileSize = (int)(16f * zoom);
+            bool costing = ModContent.GetInstance<Config.GitServerConfig>().RequirePasteResources;
 
             Main.spriteBatch.Begin(
                 SpriteSortMode.Deferred,
@@ -45,6 +46,8 @@ namespace Git.Common.Systems
                 for (int x = 0; x < commit.Width; x++)
                 {
                     TileData tile = commit.TilesFlat[y * commit.Width + x];
+                    if (tile == null)
+                        continue;
 
                     // Screen position for this cell
                     int sx = (int)(((anchor.X + x) * 16f - Main.screenPosition.X) * zoom);
@@ -56,12 +59,19 @@ namespace Git.Common.Systems
 
                     var destRect = new Rectangle(sx, sy, tileSize, tileSize);
 
+                    // Hide cells that paste would skip in materials mode, so
+                    // the ghost matches what actually gets placed
+                    bool wallOmitted = costing && tile.WallType != WallID.None
+                        && PasteCostSystem.GetItemForWall(tile.WallType) <= 0;
+                    bool tileOmitted = costing && tile.HasTile
+                        && PasteCostSystem.GetItemForTile(tile.TileType) <= 0;
+
                     // --- Wall (drawn first, behind tiles) ---
-                    if (tile.WallType != WallID.None)
+                    if (tile.WallType != WallID.None && !wallOmitted)
                         DrawWall(tile, destRect);
 
                     // --- Tile ---
-                    if (tile.HasTile)
+                    if (tile.HasTile && !tileOmitted)
                         DrawTile(tile, destRect);
                 }
             }
@@ -86,7 +96,13 @@ namespace Git.Common.Systems
             if (tile.TileType >= TextureAssets.Tile.Length) return;
 
             var asset = TextureAssets.Tile[tile.TileType];
-            if (asset == null || asset.State != AssetState.Loaded) return;
+            if (asset == null) return;
+            if (asset.State != AssetState.Loaded)
+            {
+                // Tile textures load lazily; request it so the ghost fills in
+                Main.instance.LoadTiles(tile.TileType);
+                return;
+            }
 
             Texture2D tex = asset.Value;
             var src = new Rectangle(tile.TileFrameX, tile.TileFrameY, 16, 16);
@@ -103,7 +119,12 @@ namespace Git.Common.Systems
             if (tile.WallType == WallID.None || tile.WallType >= TextureAssets.Wall.Length) return;
 
             var asset = TextureAssets.Wall[tile.WallType];
-            if (asset == null || asset.State != AssetState.Loaded) return;
+            if (asset == null) return;
+            if (asset.State != AssetState.Loaded)
+            {
+                Main.instance.LoadWall(tile.WallType);
+                return;
+            }
 
             Texture2D tex = asset.Value;
 
@@ -118,18 +139,5 @@ namespace Git.Common.Systems
             Main.spriteBatch.Draw(tex, dest, src, WallColor);
         }
 
-        private static SchematicCommit GetPreviewCommit()
-        {
-            if (SchematicManager.Selected == null) return null;
-
-            var commits = SchematicManager.Selected.Commits;
-            if (commits.Count == 0) return null;
-
-            int idx = SchematicManager.PasteCommitIndex;
-            if (idx >= 0 && idx < commits.Count)
-                return commits[idx];
-
-            return commits[commits.Count - 1];
-        }
     }
 }

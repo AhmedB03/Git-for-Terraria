@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Git.Common.Data;
-using Microsoft.Xna.Framework;
 using Terraria.ModLoader;
 
 namespace Git.Common.Systems
@@ -10,13 +9,8 @@ namespace Git.Common.Systems
     {
         public static List<Schematic> Schematics { get; private set; } = new();
 
-        // Index of schematic selected in the UI, -1 = none
-        public static int SelectedSchematicIndex { get; set; } = -1;
-        public static Schematic Selected => SelectedSchematicIndex >= 0 && SelectedSchematicIndex < Schematics.Count
-            ? Schematics[SelectedSchematicIndex] : null;
-
-        // Tile position where the next paste will be anchored (top-left)
-        public static Point PasteAnchor { get; set; }
+        // Currently selected schematic — one of ours, or a built-in template.
+        public static Schematic Selected { get; set; }
 
         // Which commit index to paste, -1 = latest
         public static int PasteCommitIndex { get; set; } = -1;
@@ -24,6 +18,8 @@ namespace Git.Common.Systems
         public override void OnWorldLoad()
         {
             Schematics = Schematic.LoadAll();
+            Selected = null;
+            PasteCommitIndex = -1;
         }
 
         public static Schematic GetOrCreate(string name)
@@ -44,20 +40,44 @@ namespace Git.Common.Systems
             schematic.Save();
         }
 
-        public static void PasteLatest(int schematicIndex, Point anchor)
+        // The commit that would be pasted right now: the one picked in the UI,
+        // or the latest if none is picked. Shared by the wand and the preview.
+        public static SchematicCommit GetActiveCommit()
         {
-            if (schematicIndex < 0 || schematicIndex >= Schematics.Count) return;
-            var commit = Schematics[schematicIndex].LatestCommit;
-            if (commit == null) return;
-            Schematic.PasteCommit(commit, anchor);
+            var s = Selected;
+            if (s == null || s.Commits.Count == 0) return null;
+            if (PasteCommitIndex >= 0 && PasteCommitIndex < s.Commits.Count)
+                return s.Commits[PasteCommitIndex];
+            return s.Commits[^1];
         }
 
-        public static void PasteCommitAt(int schematicIndex, int commitIndex, Point anchor)
+        // Adds a schematic downloaded from the sharing site, renaming on collision.
+        public static void AddDownloaded(Schematic schematic)
         {
-            if (schematicIndex < 0 || schematicIndex >= Schematics.Count) return;
-            var commits = Schematics[schematicIndex].Commits;
-            if (commitIndex < 0 || commitIndex >= commits.Count) return;
-            Schematic.PasteCommit(commits[commitIndex], anchor);
+            schematic.PruneInvalidCommits();
+            if (schematic.Commits.Count == 0) return;
+
+            string baseName = schematic.Name;
+            int suffix = 2;
+            while (Schematics.Exists(s => s.Name == schematic.Name))
+                schematic.Name = $"{baseName}-{suffix++}";
+
+            Schematics.Add(schematic);
+            schematic.Save();
+        }
+
+        // Returns false if nothing is selected or a template is selected.
+        public static bool DeleteSelected()
+        {
+            var s = Selected;
+            if (s == null || !Schematics.Contains(s))
+                return false;
+
+            s.DeleteFile();
+            Schematics.Remove(s);
+            Selected = null;
+            PasteCommitIndex = -1;
+            return true;
         }
     }
 }

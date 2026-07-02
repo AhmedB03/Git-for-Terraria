@@ -67,7 +67,11 @@ namespace Git.Common.Data
                 {
                     string json = File.ReadAllText(file);
                     var s = JsonSerializer.Deserialize<Schematic>(json);
-                    if (s != null)
+                    if (s == null)
+                        continue;
+
+                    s.PruneInvalidCommits();
+                    if (s.Commits.Count > 0)
                         list.Add(s);
                 }
                 catch { }
@@ -79,6 +83,25 @@ namespace Git.Common.Data
         {
             string path = Path.Combine(SaveDirectory, SanitizeFileName(Name) + ".json");
             File.WriteAllText(path, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+        }
+
+        public void DeleteFile()
+        {
+            string path = Path.Combine(SaveDirectory, SanitizeFileName(Name) + ".json");
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+
+        // Drops commits written by older/buggy versions: null tile arrays,
+        // size mismatches, or null cells all crash the preview and paste code.
+        public void PruneInvalidCommits()
+        {
+            Commits ??= new List<SchematicCommit>();
+            Commits.RemoveAll(c =>
+                c == null ||
+                c.TilesFlat == null ||
+                c.TilesFlat.Length != c.Width * c.Height ||
+                Array.Exists(c.TilesFlat, t => t == null));
         }
 
         public static SchematicCommit CaptureRegion(Point topLeft, int width, int height, string message)
@@ -97,11 +120,26 @@ namespace Git.Common.Data
             };
         }
 
-        public static void PasteCommit(SchematicCommit commit, Point topLeft)
+        // skipUnobtainable: leave out tiles/walls that no item can place
+        // (trees, pots, natural cave walls) so paste-with-materials can't
+        // create things the player couldn't legitimately build.
+        public static void PasteCommit(SchematicCommit commit, Point topLeft, bool skipUnobtainable = false)
         {
             for (int y = 0; y < commit.Height; y++)
+            {
                 for (int x = 0; x < commit.Width; x++)
-                    commit.TilesFlat[y * commit.Width + x].Place(topLeft.X + x, topLeft.Y + y);
+                {
+                    var t = commit.TilesFlat[y * commit.Width + x];
+                    if (t == null) continue;
+
+                    bool placeTile = !skipUnobtainable || !t.HasTile
+                        || Systems.PasteCostSystem.GetItemForTile(t.TileType) > 0;
+                    bool placeWall = !skipUnobtainable || t.WallType == 0
+                        || Systems.PasteCostSystem.GetItemForWall(t.WallType) > 0;
+
+                    t.Place(topLeft.X + x, topLeft.Y + y, placeTile, placeWall);
+                }
+            }
 
             // Refresh the pasted region so tiles render correctly
             for (int x = topLeft.X - 1; x <= topLeft.X + commit.Width; x++)

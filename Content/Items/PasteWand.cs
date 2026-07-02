@@ -1,3 +1,6 @@
+using System.Linq;
+using Git.Common.Config;
+using Git.Common.Data;
 using Git.Common.Systems;
 using Microsoft.Xna.Framework;
 using Terraria;
@@ -23,30 +26,38 @@ namespace Git.Content.Items
 
         public override bool? UseItem(Player player)
         {
-            if (SchematicManager.Selected == null)
+            SchematicCommit commit = SchematicManager.GetActiveCommit();
+            if (commit == null)
             {
-                Main.NewText("[Git] No schematic selected. Open the Git UI to select one.", Color.Orange);
+                Main.NewText("[Git] No schematic selected. Press G to open the UI.", Color.Orange);
                 return true;
             }
 
             Point anchor = Main.MouseWorld.ToTileCoordinates();
-            int idx = SchematicManager.SelectedSchematicIndex;
-            int commitIdx = SchematicManager.PasteCommitIndex;
+            bool requireResources = ModContent.GetInstance<GitServerConfig>().RequirePasteResources;
 
-            if (commitIdx < 0)
-                SchematicManager.PasteLatest(idx, anchor);
-            else
-                SchematicManager.PasteCommitAt(idx, commitIdx, anchor);
+            if (requireResources)
+            {
+                var cost = PasteCostSystem.ComputeCost(commit);
+                if (!PasteCostSystem.TryConsume(player, cost, out var missing))
+                {
+                    var parts = missing.Take(4).Select(m => $"{m.shortBy} {Lang.GetItemNameValue(m.type)}");
+                    string more = missing.Count > 4 ? $" (+{missing.Count - 4} more)" : "";
+                    Main.NewText($"[Git] Missing materials: {string.Join(", ", parts)}{more}", Color.Orange);
+                    return true;
+                }
+            }
 
-            string name = SchematicManager.Selected.Name;
-            Main.NewText($"[Git] Pasted \"{name}\" at ({anchor.X}, {anchor.Y}).", Color.LightGreen);
+            Schematic.PasteCommit(commit, anchor, skipUnobtainable: requireResources);
+            Main.NewText($"[Git] Pasted \"{SchematicManager.Selected.Name}\" at ({anchor.X}, {anchor.Y}).", Color.LightGreen);
             return true;
         }
 
         public override void AddRecipes()
         {
             CreateRecipe()
-                .AddIngredient(ItemID.Wood, 10)
+                .AddIngredient(ItemID.Wood, 2)
+                .AddRecipeGroup(RecipeGroupID.IronBar, 1)
                 .AddTile(TileID.WorkBenches)
                 .Register();
         }

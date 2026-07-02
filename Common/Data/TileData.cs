@@ -48,17 +48,19 @@ namespace Git.Common.Data
             };
         }
 
-        public void Place(int worldX, int worldY)
+        public void Place(int worldX, int worldY, bool placeTile = true, bool placeWall = true)
         {
             if (worldX < 0 || worldY < 0 || worldX >= Main.maxTilesX || worldY >= Main.maxTilesY)
                 return;
+
+            bool hasTile = HasTile && placeTile;
 
             Tile t = Main.tile[worldX, worldY];
             t.ClearTile();
             t.WallType = WallID.None;
 
-            t.HasTile = HasTile;
-            if (HasTile)
+            t.HasTile = hasTile;
+            if (hasTile)
             {
                 t.TileType = TileType;
                 t.TileColor = TileColor;
@@ -68,8 +70,11 @@ namespace Git.Common.Data
                 t.TileFrameY = TileFrameY;
             }
 
-            t.WallType = WallType;
-            t.WallColor = WallColor;
+            if (placeWall)
+            {
+                t.WallType = WallType;
+                t.WallColor = WallColor;
+            }
             t.RedWire = RedWire;
             t.BlueWire = BlueWire;
             t.GreenWire = GreenWire;

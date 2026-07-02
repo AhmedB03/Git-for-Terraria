@@ -1,13 +1,41 @@
-"Keybinds.Toggle Schematic UI.DisplayName": Toggle  Schematic  U I
+"Keybinds.Toggle Schematic UI.DisplayName": Toggle Schematic UI
 
 Items: {
 	PasteWand: {
 		DisplayName: Paste Wand
-		Tooltip: ""
+		Tooltip:
+			'''
+			Left-click to paste the selected schematic
+			Press G to open the schematic UI
+			'''
 	}
 
 	SelectionWand: {
 		DisplayName: Selection Wand
-		Tooltip: ""
+		Tooltip:
+			'''
+			Left-click two corners to select a region
+			Right-click to clear the selection
+			'''
+	}
+}
+
+Configs: {
+	GitServerConfig: {
+		DisplayName: Gameplay
+
+		RequirePasteResources: {
+			Label: Paste requires materials
+			Tooltip: When enabled, pasting consumes the required blocks, walls, wires and actuators from your inventory. Disable for free (creative-style) pasting.
+		}
+	}
+
+	GitClientConfig: {
+		DisplayName: Sharing
+
+		SchematicServerUrl: {
+			Label: Schematic server URL
+			Tooltip: Base URL of the schematic sharing website. Leave empty to disable sharing.
+		}
 	}
 }

@@ -1,161 +1,223 @@
 using System.Collections.Generic;
+using Git.Common.Config;
 using Git.Common.Data;
+using Git.Common.Net;
 using Git.Common.Systems;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Terraria;
 using Terraria.GameContent.UI.Elements;
+using Terraria.ModLoader;
 using Terraria.UI;
 
 namespace Git.Common.UI
 {
     public class SchematicUIState : UIState
     {
-        private UIPanel _panel;
+        private DraggableUIPanel _panel;
         private UIList _schematicList;
         private UIList _commitList;
-        private UITextPanel<string> _commitBtn;
-        private UITextPanel<string> _pasteBtn;
         private UITextField _nameField;
         private UITextField _messageField;
+        private UITextField _codeField;
         private UIText _statusText;
+        private UITextPanel<string> _deleteBtn;
+        private UITextPanel<string> _mineTab;
+        private UITextPanel<string> _templatesTab;
+        private bool _confirmDelete;
+        private bool _showTemplates;
 
-        public const float PanelWidth = 340f;
-        public const float PanelHeight = 480f;
+        private const float PanelWidth = 400f;
+        private const float PanelHeight = 520f;
+        private const float Inner = PanelWidth - 24f;
+
+        private static readonly Color TabActive = new(60, 120, 60);
+        private static readonly Color TabInactive = new(45, 48, 80);
 
         public override void OnInitialize()
         {
-            _panel = new UIPanel();
+            _panel = new DraggableUIPanel();
             _panel.Width.Set(PanelWidth, 0f);
             _panel.Height.Set(PanelHeight, 0f);
-            _panel.HAlign = 0.85f;
+            _panel.HAlign = 0.82f;
             _panel.VAlign = 0.5f;
-            _panel.BackgroundColor = new Color(40, 40, 80, 220);
+            _panel.BackgroundColor = new Color(33, 36, 65, 235);
             Append(_panel);
 
-            // Title
-            var title = new UIText("Git - Schematics", 0.85f, true);
-            title.Top.Set(8f, 0f);
-            title.HAlign = 0.5f;
+            // --- Title bar ---
+            var title = new UIText("Git — Schematics", 0.6f, true);
+            title.Top.Set(2f, 0f);
+            title.Left.Set(0f, 0f);
             _panel.Append(title);
 
-            // Schematic name input
-            var nameLabel = new UIText("Name:", 0.75f);
-            nameLabel.Top.Set(40f, 0f);
-            nameLabel.Left.Set(8f, 0f);
-            _panel.Append(nameLabel);
+            var closeBtn = new UITextPanel<string>("X", 0.8f)
+            {
+                BackgroundColor = new Color(120, 50, 50)
+            };
+            closeBtn.Width.Set(30f, 0f);
+            closeBtn.Height.Set(26f, 0f);
+            closeBtn.Left.Set(-30f, 1f);
+            closeBtn.Top.Set(0f, 0f);
+            closeBtn.OnLeftClick += (_, _) => UISystem.Toggle();
+            _panel.Append(closeBtn);
 
-            _nameField = new UITextField("schematic name");
-            _nameField.Top.Set(38f, 0f);
-            _nameField.Left.Set(60f, 0f);
-            _nameField.Width.Set(160f, 0f);
-            _nameField.Height.Set(20f, 0f);
-            _panel.Append(_nameField);
+            // --- Name / Note inputs with Commit button to the right ---
+            AddLabel("Name", 0f, 42f);
+            _nameField = AddField("build name", 56f, 40f, 200f);
 
-            // Commit message input
-            var msgLabel = new UIText("Msg:", 0.75f);
-            msgLabel.Top.Set(66f, 0f);
-            msgLabel.Left.Set(8f, 0f);
-            _panel.Append(msgLabel);
+            AddLabel("Note", 0f, 72f);
+            _messageField = AddField("what changed?", 56f, 70f, 200f);
 
-            _messageField = new UITextField("commit message");
-            _messageField.Top.Set(64f, 0f);
-            _messageField.Left.Set(60f, 0f);
-            _messageField.Width.Set(160f, 0f);
-            _messageField.Height.Set(20f, 0f);
-            _panel.Append(_messageField);
+            var commitBtn = new UITextPanel<string>("Commit", 0.85f)
+            {
+                BackgroundColor = new Color(50, 110, 60)
+            };
+            commitBtn.Left.Set(Inner - 106f, 0f);
+            commitBtn.Top.Set(40f, 0f);
+            commitBtn.Width.Set(106f, 0f);
+            commitBtn.Height.Set(52f, 0f);
+            commitBtn.OnLeftClick += OnCommitClicked;
+            _panel.Append(commitBtn);
 
-            // Commit button
-            _commitBtn = new UITextPanel<string>("Commit Selection", 0.75f);
-            _commitBtn.Top.Set(38f, 0f);
-            _commitBtn.Left.Set(232f, 0f);
-            _commitBtn.Width.Set(96f, 0f);
-            _commitBtn.Height.Set(46f, 0f);
-            _commitBtn.OnLeftClick += OnCommitClicked;
-            _panel.Append(_commitBtn);
+            // --- Tabs over the left list ---
+            _mineTab = MakeSmallButton("Mine", 0f, 102f, 80f, TabActive);
+            _mineTab.OnLeftClick += (_, _) => SwitchTab(false);
 
-            // Schematic list header
-            var schHeader = new UIText("Schematics", 0.75f);
-            schHeader.Top.Set(92f, 0f);
-            schHeader.Left.Set(8f, 0f);
-            _panel.Append(schHeader);
+            _templatesTab = MakeSmallButton("Templates", 84f, 102f, 92f, TabInactive);
+            _templatesTab.OnLeftClick += (_, _) => SwitchTab(true);
 
-            // Schematic list
-            _schematicList = new UIList();
-            _schematicList.Top.Set(110f, 0f);
-            _schematicList.Left.Set(4f, 0f);
-            _schematicList.Width.Set(156f, 0f);
-            _schematicList.Height.Set(280f, 0f);
-            _schematicList.ListPadding = 4f;
-            _panel.Append(_schematicList);
-            AddScrollbar(_schematicList, 160f, 110f, 156f, 280f);
+            AddLabel("Commits", 196f, 110f);
 
-            // Commit list header
-            var cmtHeader = new UIText("Commits", 0.75f);
-            cmtHeader.Top.Set(92f, 0f);
-            cmtHeader.Left.Set(172f, 0f);
-            _panel.Append(cmtHeader);
+            // --- Lists ---
+            _schematicList = MakeList(0f, 136f, 168f, 228f);
+            _commitList = MakeList(196f, 136f, 168f, 228f);
 
-            // Commit list
-            _commitList = new UIList();
-            _commitList.Top.Set(110f, 0f);
-            _commitList.Left.Set(168f, 0f);
-            _commitList.Width.Set(156f, 0f);
-            _commitList.Height.Set(280f, 0f);
-            _commitList.ListPadding = 4f;
-            _panel.Append(_commitList);
-            AddScrollbar(_commitList, 324f, 110f, 156f, 280f);
+            // --- Share row ---
+            AddLabel("Code", 0f, 380f);
+            _codeField = AddField("share code", 56f, 378f, 120f);
 
-            // Paste button
-            _pasteBtn = new UITextPanel<string>("Paste (use wand)", 0.75f);
-            _pasteBtn.Top.Set(398f, 0f);
-            _pasteBtn.HAlign = 0.5f;
-            _pasteBtn.Width.Set(180f, 0f);
-            _pasteBtn.Height.Set(28f, 0f);
-            _pasteBtn.OnLeftClick += OnPasteClicked;
-            _panel.Append(_pasteBtn);
+            var uploadBtn = MakeSmallButton("Upload", 186f, 374f, 88f, new Color(60, 80, 130));
+            uploadBtn.OnLeftClick += OnUploadClicked;
 
-            // Status text
-            _statusText = new UIText("", 0.7f);
-            _statusText.Top.Set(432f, 0f);
-            _statusText.HAlign = 0.5f;
+            var downloadBtn = MakeSmallButton("Download", 280f, 374f, 96f, new Color(60, 80, 130));
+            downloadBtn.OnLeftClick += OnDownloadClicked;
+
+            // --- Actions row ---
+            _deleteBtn = MakeSmallButton("Delete", 0f, 414f, 88f, new Color(110, 55, 55));
+            _deleteBtn.OnLeftClick += OnDeleteClicked;
+
+            var hint = new UIText("Paste with the Paste Wand", 0.72f, false)
+            {
+                TextColor = Color.LightGray
+            };
+            hint.Left.Set(100f, 0f);
+            hint.Top.Set(422f, 0f);
+            _panel.Append(hint);
+
+            // --- Status ---
+            _statusText = new UIText("", 0.72f);
+            _statusText.Top.Set(456f, 0f);
+            _statusText.Left.Set(0f, 0f);
             _panel.Append(_statusText);
 
-            RefreshSchematicList();
+            RefreshAll();
         }
 
-        private void AddScrollbar(UIList list, float left, float top, float width, float height)
+        // ---------- element factories ----------
+
+        private void AddLabel(string text, float left, float top)
         {
+            var label = new UIText(text, 0.72f) { TextColor = Color.LightGray };
+            label.Left.Set(left, 0f);
+            label.Top.Set(top, 0f);
+            _panel.Append(label);
+        }
+
+        private UITextField AddField(string hint, float left, float top, float width)
+        {
+            var field = new UITextField(hint);
+            field.Left.Set(left, 0f);
+            field.Top.Set(top, 0f);
+            field.Width.Set(width, 0f);
+            field.Height.Set(22f, 0f);
+            _panel.Append(field);
+            return field;
+        }
+
+        private UIList MakeList(float left, float top, float width, float height)
+        {
+            var list = new UIList();
+            list.Left.Set(left, 0f);
+            list.Top.Set(top, 0f);
+            list.Width.Set(width, 0f);
+            list.Height.Set(height, 0f);
+            list.ListPadding = 4f;
+            _panel.Append(list);
+
             var scrollbar = new UIScrollbar();
-            scrollbar.Left.Set(left, 0f);
+            scrollbar.Left.Set(left + width + 4f, 0f);
             scrollbar.Top.Set(top, 0f);
-            scrollbar.Height.Set(height, 0f);
             scrollbar.Width.Set(12f, 0f);
+            scrollbar.Height.Set(height, 0f);
             list.SetScrollbar(scrollbar);
             _panel.Append(scrollbar);
+
+            return list;
+        }
+
+        private UITextPanel<string> MakeSmallButton(string text, float left, float top, float width, Color color)
+        {
+            var btn = new UITextPanel<string>(text, 0.75f) { BackgroundColor = color };
+            btn.Left.Set(left, 0f);
+            btn.Top.Set(top, 0f);
+            btn.Width.Set(width, 0f);
+            btn.Height.Set(30f, 0f);
+            _panel.Append(btn);
+            return btn;
+        }
+
+        // ---------- tabs ----------
+
+        private void SwitchTab(bool templates)
+        {
+            _showTemplates = templates;
+            _mineTab.BackgroundColor = templates ? TabInactive : TabActive;
+            _templatesTab.BackgroundColor = templates ? TabActive : TabInactive;
+            _confirmDelete = false;
+            RefreshAll();
+        }
+
+        private List<Schematic> ActiveList()
+            => _showTemplates ? TemplateSystem.Templates : SchematicManager.Schematics;
+
+        // ---------- list refresh ----------
+
+        public void RefreshAll()
+        {
+            RefreshSchematicList();
+            RefreshCommitList();
         }
 
         private void RefreshSchematicList()
         {
             _schematicList.Clear();
-            for (int i = 0; i < SchematicManager.Schematics.Count; i++)
+            foreach (var s in ActiveList())
             {
-                int captured = i;
-                var s = SchematicManager.Schematics[i];
-                bool selected = SchematicManager.SelectedSchematicIndex == i;
-                var btn = new UITextPanel<string>(s.Name, 0.72f)
+                var schematic = s;
+                bool selected = ReferenceEquals(SchematicManager.Selected, schematic);
+
+                var btn = new UITextPanel<string>(Truncate(schematic.Name, 16), 0.72f)
                 {
-                    BackgroundColor = selected ? new Color(60, 120, 60) : new Color(50, 50, 90)
+                    BackgroundColor = selected ? new Color(60, 120, 60) : new Color(45, 48, 80)
                 };
-                btn.Width.Set(148f, 0f);
-                btn.Height.Set(24f, 0f);
+                btn.Width.Set(160f, 0f);
+                btn.Height.Set(26f, 0f);
                 btn.OnLeftClick += (_, _) =>
                 {
-                    SchematicManager.SelectedSchematicIndex = captured;
+                    SchematicManager.Selected = schematic;
                     SchematicManager.PasteCommitIndex = -1;
-                    RefreshSchematicList();
-                    RefreshCommitList();
-                    _nameField.SetText(SchematicManager.Schematics[captured].Name);
+                    _confirmDelete = false;
+                    _nameField.SetText(schematic.Name);
+                    RefreshAll();
                 };
                 _schematicList.Add(btn);
             }
@@ -171,30 +233,37 @@ namespace Git.Common.UI
             {
                 int captured = i;
                 var c = commits[i];
-                bool selected = SchematicManager.PasteCommitIndex == i;
-                string label = $"#{c.CommitId} {c.Message}";
-                if (label.Length > 18) label = label[..18] + "…";
-                var btn = new UITextPanel<string>(label, 0.68f)
+                bool selected = SchematicManager.PasteCommitIndex == i
+                    || (SchematicManager.PasteCommitIndex == -1 && i == commits.Count - 1);
+
+                var btn = new UITextPanel<string>(Truncate($"{c.CommitId} · {c.Message}", 17), 0.68f)
                 {
-                    BackgroundColor = selected ? new Color(60, 120, 60) : new Color(50, 50, 90)
+                    BackgroundColor = selected ? new Color(60, 120, 60) : new Color(45, 48, 80)
                 };
-                btn.Width.Set(148f, 0f);
-                btn.Height.Set(24f, 0f);
+                btn.Width.Set(160f, 0f);
+                btn.Height.Set(26f, 0f);
                 btn.OnLeftClick += (_, _) =>
                 {
                     SchematicManager.PasteCommitIndex = captured;
                     RefreshCommitList();
-                    SetStatus($"Selected commit #{c.CommitId}");
+                    SetStatus($"Will paste commit {c.CommitId}");
                 };
                 _commitList.Add(btn);
             }
         }
 
+        private static string Truncate(string text, int max)
+            => text.Length > max ? text[..max] + "…" : text;
+
+        // ---------- button handlers ----------
+
         private void OnCommitClicked(UIMouseEvent evt, UIElement element)
         {
+            _confirmDelete = false;
+
             if (!SelectionSystem.HasSelection)
             {
-                SetStatus("No selection! Use the wand first.");
+                SetStatus("Select a region with the Selection Wand first.");
                 return;
             }
 
@@ -204,24 +273,95 @@ namespace Git.Common.UI
             if (string.IsNullOrEmpty(msg)) msg = "no message";
 
             SchematicManager.CommitSelection(name, msg);
+            SchematicManager.Selected = SchematicManager.Schematics.Find(s => s.Name == name);
+            SchematicManager.PasteCommitIndex = -1;
 
-            // Select the newly committed schematic
-            int idx = SchematicManager.Schematics.FindIndex(s => s.Name == name);
-            if (idx >= 0) SchematicManager.SelectedSchematicIndex = idx;
+            // Committing always lands in "Mine"
+            if (_showTemplates)
+                SwitchTab(false);
+            else
+                RefreshAll();
 
-            RefreshSchematicList();
-            RefreshCommitList();
-            SetStatus($"Committed \"{name}\"!");
+            SetStatus($"Committed \"{name}\".");
         }
 
-        private void OnPasteClicked(UIMouseEvent evt, UIElement element)
+        private void OnDeleteClicked(UIMouseEvent evt, UIElement element)
         {
             if (SchematicManager.Selected == null)
             {
-                SetStatus("Select a schematic first.");
+                SetStatus("Select a schematic to delete.");
                 return;
             }
-            SetStatus("Click the paste wand in-world to place.");
+
+            if (!SchematicManager.Schematics.Contains(SchematicManager.Selected))
+            {
+                SetStatus("Templates can't be deleted.");
+                return;
+            }
+
+            if (!_confirmDelete)
+            {
+                _confirmDelete = true;
+                _deleteBtn.SetText("Sure?");
+                SetStatus($"Click again to delete \"{SchematicManager.Selected.Name}\".");
+                return;
+            }
+
+            string name = SchematicManager.Selected.Name;
+            SchematicManager.DeleteSelected();
+            _confirmDelete = false;
+            _deleteBtn.SetText("Delete");
+            RefreshAll();
+            SetStatus($"Deleted \"{name}\".");
+        }
+
+        private void OnUploadClicked(UIMouseEvent evt, UIElement element)
+        {
+            _confirmDelete = false;
+
+            string url = ModContent.GetInstance<GitClientConfig>().SchematicServerUrl;
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                SetStatus("Set the server URL in Mod Config first.");
+                return;
+            }
+            if (SchematicManager.Selected == null)
+            {
+                SetStatus("Select a schematic to upload.");
+                return;
+            }
+
+            SetStatus("Uploading…");
+            SchematicShareClient.Upload(SchematicManager.Selected, url, SetStatus);
+        }
+
+        private void OnDownloadClicked(UIMouseEvent evt, UIElement element)
+        {
+            _confirmDelete = false;
+
+            string url = ModContent.GetInstance<GitClientConfig>().SchematicServerUrl;
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                SetStatus("Set the server URL in Mod Config first.");
+                return;
+            }
+
+            string code = _codeField.Text.Trim();
+            if (string.IsNullOrEmpty(code))
+            {
+                SetStatus("Enter a share code first.");
+                return;
+            }
+
+            SetStatus("Downloading…");
+            SchematicShareClient.Download(code, url, schematic =>
+            {
+                SchematicManager.AddDownloaded(schematic);
+                if (_showTemplates)
+                    SwitchTab(false);
+                else
+                    RefreshAll();
+            }, SetStatus);
         }
 
         private void SetStatus(string text) => _statusText.SetText(text);
@@ -229,7 +369,6 @@ namespace Git.Common.UI
         public override void Update(GameTime gameTime)
         {
             base.Update(gameTime);
-            // Prevent clicks from passing through the panel
             if (_panel.ContainsPoint(Main.MouseScreen))
                 Main.LocalPlayer.mouseInterface = true;
         }
