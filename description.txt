@@ -1,20 +1,29 @@
-Git for Terraria — a schematic/blueprint system with version history.
+Git for Terraria — copy, version, and paste your builds.
 
-Select any region of your world, save it as a named schematic, and paste it anywhere else. Perfect for copying farms, wire contraptions, and intricate builds.
+Select any region of your world, commit it as a named schematic with full version history, and paste it anywhere. Pasting costs real materials from your inventory by default, so it's a building tool, not a dupe machine.
 
 [Features]
 - Selection Wand: left-click two corners to select a region, right-click to clear
-- Paste Wand: left-click to paste the selected schematic at any location
-- Full commit history: save multiple versions of a schematic and restore any of them
-- Captures tiles, walls, wires (all 4 colors), actuators, liquids, and slopes
-- Schematics saved to disk as JSON — persist across worlds and sessions
-- Press G to open the Schematic UI
+- Paste Wand: live ghost preview of the exact tiles, left-click to place
+- Version history: commit repeatedly and paste any past version, git-style
+- Material costs: pasting consumes the required blocks, walls, wires and actuators; chat lists anything you're missing
+- Templates tab: built-in schematics (Starter House, Arena Platforms, Hellevator Segment)
+- Clean draggable UI: press G to open
+- Sharing-ready: upload/download schematics by code via a configurable server
 
-[How to get the items]
-Craft both wands at a Workbench using 10 Wood each.
+[Getting started]
+1. Craft both wands at a Workbench (2 Wood + 1 Iron or Lead Bar each)
+2. Select a build with the Selection Wand
+3. Press G, name it, hit Commit
+4. Point the Paste Wand and click — the preview shows exactly what you'll get
+
+[Configuration]
+- Paste requires materials (on by default): turn off for free creative-style pasting. Host's setting applies in multiplayer.
+- Schematic server URL: enables Upload/Download sharing.
 
 [Known limitations]
-- Chest inventories are not saved (tile structure is, contents are not)
-- Multi-tile furniture that straddles the selection edge may not paste correctly
+- Chest contents are not saved (the chest itself is)
+- With materials on, tiles no item can place (trees, pots, natural walls) are skipped
+- Multi-tile furniture straddling the selection edge may not paste correctly
 
-[Version 0.1 — early release]
+v0.2 — early release, actively developed.

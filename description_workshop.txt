@@ -1,24 +1,37 @@
-Git for Terraria — a schematic/blueprint system with version history.
+Git for Terraria — copy, version, and paste your builds like a pro.
 
-Select any region of your world, save it as a named schematic, and paste it anywhere else. Perfect for copying farms, wire contraptions, and intricate builds.
+Select any region of your world, commit it as a named schematic with full version history, and paste it anywhere — farms, arenas, wiring contraptions, entire bases. Pasting costs real materials from your inventory by default, so it's a building tool, not a dupe machine.
 
 [h1]Features[/h1]
 [list]
-[*] Selection Wand: left-click two corners to select a region, right-click to clear
-[*] Paste Wand: left-click to paste the selected schematic at any location
-[*] Full commit history: save multiple versions of a schematic and restore any of them
-[*] Captures tiles, walls, wires (all 4 colors), actuators, liquids, and slopes
-[*] Schematics saved to disk — persist across worlds and sessions
-[*] Press G to open the Schematic UI
+[*] [b]Selection Wand[/b] — left-click two corners to select a region, right-click to clear
+[*] [b]Paste Wand[/b] — live ghost preview of the exact tiles under your cursor, left-click to place
+[*] [b]Version history[/b] — commit the same schematic as many times as you like and paste any past version, git-style
+[*] [b]Material costs[/b] — pasting consumes the required blocks, walls, wires and actuators from your inventory; chat tells you what you're missing. Furniture is priced fairly (a table costs one table)
+[*] [b]Templates tab[/b] — built-in schematics for everyone: Starter House, Arena Platforms, Hellevator Segment
+[*] [b]Clean UI[/b] — draggable panel with schematic and commit lists, click-and-type text fields, delete confirmation. Press [b]G[/b] to open
+[*] [b]Sharing-ready[/b] — upload/download schematics by share code once a sharing server is configured (Mod Config → Sharing)
 [/list]
 
-[h1]How to get the items[/h1]
-Craft both wands at a Workbench using 10 Wood each.
+[h1]Getting started[/h1]
+[olist]
+[*] Craft both wands at a Workbench (2 Wood + 1 Iron or Lead Bar each)
+[*] Select a build with the Selection Wand
+[*] Press G, give it a name and a note, hit Commit
+[*] Point the Paste Wand anywhere — the preview shows exactly what you'll get — and click
+[/olist]
+
+[h1]Configuration[/h1]
+[list]
+[*] [b]Paste requires materials[/b] (Gameplay, on by default) — turn off for free creative-style pasting. Server-side: in multiplayer the host's setting applies.
+[*] [b]Schematic server URL[/b] (Sharing) — point at a schematic-sharing site to enable Upload/Download.
+[/list]
 
 [h1]Known limitations[/h1]
 [list]
-[*] Chest inventories are not saved (tile structure is, contents are not)
-[*] Multi-tile furniture that straddles the selection edge may not paste correctly
+[*] Chest contents are not saved (the chest itself is)
+[*] With materials on, tiles no item can place (trees, pots, natural cave walls) are skipped rather than pasted
+[*] Multi-tile furniture straddling the selection edge may not paste correctly
 [/list]
 
-[i]Version 0.1 — early release. Feedback and bug reports welcome![/i]
+[i]v0.2 — early release, actively developed. Feedback and bug reports welcome![/i]
